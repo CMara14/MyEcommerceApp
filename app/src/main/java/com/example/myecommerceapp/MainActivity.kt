@@ -4,44 +4,124 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.activity.viewModels
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Store
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.myecommerceapp.ui.theme.MyEcommerceAppTheme
+import com.example.myecommerceapp.presentation.viewmodel.LoginViewModel
+import dagger.hilt.android.AndroidEntryPoint
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.myecommerceapp.data.model.BottomNavItem
+import com.example.myecommerceapp.navigation.AppNavigationRoutes
+import com.example.myecommerceapp.navigation.BottomNavRoutes
+import com.example.myecommerceapp.navigation.AppNavigation
+import com.example.myecommerceapp.presentation.viewmodel.ProductCatalogViewModel
+import com.example.myecommerceapp.presentation.views.components.BottomNavigationBar
+import com.example.myecommerceapp.presentation.views.screens.CartScreen
+import com.example.myecommerceapp.presentation.views.screens.OrdersScreen
+import com.example.myecommerceapp.presentation.views.screens.ProductCatalogScreen
+import com.example.myecommerceapp.presentation.views.screens.ProfileScreen
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private val loginViewModel: LoginViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             MyEcommerceAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "MyEcommerceApp",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                val navController = rememberNavController()
+
+                val startDestination = if (loginViewModel.isUserLoggedIn()) {
+                    AppNavigationRoutes.MAIN_CONTENT_HOST_ROUTE
+                } else {
+                    AppNavigationRoutes.LOGIN_ROUTE
                 }
+
+                AppNavigation(
+                    navController = navController,
+                    loginViewModel = loginViewModel,
+                    startDestination = startDestination,
+                    onLogoutGlobal = {
+                        loginViewModel.logout()
+                        navController.navigate(AppNavigationRoutes.LOGIN_ROUTE) {
+                            popUpTo(AppNavigationRoutes.MAIN_CONTENT_HOST_ROUTE) { inclusive = true }
+                        }
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+fun MainActivityContent(
+    loginViewModel: LoginViewModel,
+    onLogoutGlobal: () -> Unit
+) {
+    val bottomNavController = rememberNavController()
+    val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MyEcommerceAppTheme {
-        Greeting("Android")
+    val bottomNavItems = listOf(
+        BottomNavItem(BottomNavRoutes.HOME_ROUTE, Icons.Filled.Home, "Home"),
+        BottomNavItem(BottomNavRoutes.ORDER_ROUTE, Icons.Filled.Store, "Orders"),
+        BottomNavItem(BottomNavRoutes.CART_ROUTE, Icons.Filled.ShoppingCart, "Cart"),
+        BottomNavItem(BottomNavRoutes.PROFILE_ROUTE, Icons.Filled.Person, "Profile")
+    )
+
+    Scaffold(
+        bottomBar = {
+            BottomNavigationBar(
+                selectedIndex = bottomNavItems.indexOfFirst { it.route == currentRoute },
+                onItemSelected = { index ->
+                    val selectedItem = bottomNavItems[index]
+                    bottomNavController.navigate(selectedItem.route) {
+                        launchSingleTop = true
+                        restoreState = true
+                        popUpTo(bottomNavController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                    }
+                },
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        NavHost(
+            navController = bottomNavController,
+            startDestination = BottomNavRoutes.HOME_ROUTE,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            composable(BottomNavRoutes.HOME_ROUTE) {
+                val productCatalogViewModel: ProductCatalogViewModel = hiltViewModel()
+                ProductCatalogScreen(viewModel = productCatalogViewModel)
+            }
+            composable(BottomNavRoutes.ORDER_ROUTE) {
+                OrdersScreen()
+            }
+            composable(BottomNavRoutes.CART_ROUTE) {
+                CartScreen()
+            }
+            composable(BottomNavRoutes.PROFILE_ROUTE) {
+                ProfileScreen(onLogout = onLogoutGlobal)
+            }
+        }
     }
 }
