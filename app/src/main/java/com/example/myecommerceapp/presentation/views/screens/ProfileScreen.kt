@@ -1,5 +1,9 @@
 package com.example.myecommerceapp.presentation.views.screens
 
+import android.Manifest
+import android.app.Activity
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,6 +15,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -24,20 +29,26 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.example.myecommerceapp.presentation.viewmodel.ProfileViewModel
+import com.example.myecommerceapp.ui.theme.ActiveButton
 import com.example.myecommerceapp.ui.theme.DarkBackground
+import com.example.myecommerceapp.ui.theme.DisabledButton
+import com.example.myecommerceapp.ui.theme.DisabledTextButton
 import com.example.myecommerceapp.ui.theme.InputFieldColor
 import com.example.myecommerceapp.ui.theme.LightGrayText
 import com.example.myecommerceapp.ui.theme.PinkPastel
 import com.example.myecommerceapp.ui.theme.White
-import com.example.myecommerceapp.presentation.viewmodel.ProfileViewModel
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
-import com.example.myecommerceapp.ui.theme.ActiveButton
-import com.example.myecommerceapp.ui.theme.DisabledButton
-import com.example.myecommerceapp.ui.theme.DisabledTextButton
-import android.net.Uri
-import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.app.ActivityCompat
+import androidx.compose.ui.window.Dialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +67,7 @@ fun ProfileScreen(
     val saveSuccess by viewModel.saveSuccess.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val isSaveButtonEnabled by viewModel.isSaveButtonEnabled.collectAsState()
+    val showProfileSummary by viewModel.showProfileSummary.collectAsState()
 
     val nameError by viewModel.nameError.collectAsState()
     val lastNameError by viewModel.lastNameError.collectAsState()
@@ -71,10 +83,104 @@ fun ProfileScreen(
     val context = LocalContext.current
     var passwordVisible by remember { mutableStateOf(false) }
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
+    var showPermissionRationaleDialog by remember { mutableStateOf(false) }
+    var showImageSourceSelectionDialog by remember { mutableStateOf(false) }
+    var permissionToRequest: String? by remember { mutableStateOf(null) }
+
+
+    val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         viewModel.onProfileImageSelected(uri?.toString())
+    }
+
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (!success) {
+            viewModel.onProfileImageSelected(null)
+        }
+    }
+
+    val requestCameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            val uri = viewModel.createImageUri(context)
+            if (uri != null) {
+                viewModel.onProfileImageSelected(uri.toString())
+                takePictureLauncher.launch(uri)
+            }
+        }
+    }
+
+    val requestGalleryPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            pickImageLauncher.launch("image/*")
+        }
+    }
+
+    fun onProfileImageClick() {
+        showImageSourceSelectionDialog = true
+    }
+
+    fun handleGallerySelection() {
+        val permission =
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                Manifest.permission.READ_MEDIA_IMAGES
+            } else {
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            }
+        when {
+            ContextCompat.checkSelfPermission(
+                context,
+                permission
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                pickImageLauncher.launch("image/*")
+            }
+
+            ActivityCompat.shouldShowRequestPermissionRationale(
+                context as Activity,
+                permission
+            ) -> {
+                permissionToRequest = permission
+                showPermissionRationaleDialog = true
+            }
+
+            else -> {
+                requestGalleryPermissionLauncher.launch(permission)
+            }
+        }
+    }
+
+    fun handleCameraSelection() {
+        val permission = Manifest.permission.CAMERA
+        when {
+            ContextCompat.checkSelfPermission(
+                context,
+                permission
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                val uri = viewModel.createImageUri(context)
+                if (uri != null) {
+                    viewModel.onProfileImageSelected(uri.toString())
+                    takePictureLauncher.launch(uri)
+                }
+            }
+
+            ActivityCompat.shouldShowRequestPermissionRationale(
+                context as Activity,
+                permission
+            ) -> {
+                permissionToRequest = permission
+                showPermissionRationaleDialog = true
+            }
+
+            else -> {
+                requestCameraPermissionLauncher.launch(permission)
+            }
+        }
     }
 
     LaunchedEffect(saveSuccess) {
@@ -91,6 +197,97 @@ fun ProfileScreen(
         }
     }
 
+    if (showPermissionRationaleDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showPermissionRationaleDialog = false
+                permissionToRequest = null
+            },
+            title = { Text("Permission Required", color = White) },
+            text = {
+                Text(
+                    "To be able to ${if (permissionToRequest == Manifest.permission.CAMERA) "take photos with the camera" else "select images from your gallery"}, we need your permission.",
+                    color = LightGrayText
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showPermissionRationaleDialog = false
+                        permissionToRequest?.let {
+                            if (it == Manifest.permission.CAMERA) {
+                                requestCameraPermissionLauncher.launch(it)
+                            } else {
+                                requestGalleryPermissionLauncher.launch(it)
+                            }
+                        }
+                        permissionToRequest = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PinkPastel)
+                ) {
+                    Text("Accept", color = White)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showPermissionRationaleDialog = false
+                        permissionToRequest = null
+                    }
+                ) {
+                    Text("Cancel", color = LightGrayText)
+                }
+            },
+            containerColor = DarkBackground,
+            titleContentColor = White,
+            textContentColor = LightGrayText
+        )
+    }
+
+    if (showImageSourceSelectionDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showImageSourceSelectionDialog = false
+            },
+            title = { Text("Select Image Source", color = White) },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    Button(
+                        onClick = {
+                            showImageSourceSelectionDialog = false
+                            handleGallerySelection()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PinkPastel)
+                    ) {
+                        Text("Gallery", color = White)
+                    }
+                    Button(
+                        onClick = {
+                            showImageSourceSelectionDialog = false
+                            handleCameraSelection()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PinkPastel)
+                    ) {
+                        Text("Camera", color = White)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showImageSourceSelectionDialog = false
+                }) {
+                    Text("Cancel", color = LightGrayText)
+                }
+            },
+            containerColor = DarkBackground,
+            titleContentColor = White,
+            textContentColor = LightGrayText
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -101,7 +298,11 @@ fun ProfileScreen(
                 ),
                 actions = {
                     IconButton(onClick = onLogout) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Log Out", tint = White)
+                        Icon(
+                            Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Log Out",
+                            tint = White
+                        )
                     }
                 }
             )
@@ -116,6 +317,28 @@ fun ProfileScreen(
         ) {
             if (isLoading) {
                 CircularProgressIndicator(color = PinkPastel)
+            } else if (showProfileSummary) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .wrapContentHeight()
+                        .align(Alignment.Center)
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = InputFieldColor),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    ProfileSummaryCardContent(
+                        name = name,
+                        lastName = lastName,
+                        email = email,
+                        nationality = nationality,
+                        profileImageUri = selectedImageUri,
+                        onContinueEditing = { viewModel.hideProfileSummary() },
+                        onUpdate = { viewModel.saveUserProfile() },
+                        isLoading = isLoading
+                    )
+                }
             } else {
                 Column(
                     modifier = Modifier
@@ -130,7 +353,7 @@ fun ProfileScreen(
                     Card(
                         modifier = Modifier
                             .size(120.dp)
-                            .clickable { imagePickerLauncher.launch("image/*") },
+                            .clickable { onProfileImageClick() },
                         shape = RoundedCornerShape(percent = 50),
                         colors = CardDefaults.cardColors(containerColor = InputFieldColor)
                     ) {
@@ -143,7 +366,9 @@ fun ProfileScreen(
                                     model = selectedImageUri,
                                     contentDescription = "Profile Picture",
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(percent = 50))
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(percent = 50))
                                 )
                             } else {
                                 Icon(
@@ -222,7 +447,7 @@ fun ProfileScreen(
 
                     OutlinedTextField(
                         value = email,
-                        onValueChange = {  },
+                        onValueChange = { },
                         label = { Text("Email (not editable)", color = LightGrayText) },
                         readOnly = true,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -247,10 +472,16 @@ fun ProfileScreen(
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         trailingIcon = {
-                            val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                            val description = if (passwordVisible) "Hide password" else "Show password"
+                            val image =
+                                if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                            val description =
+                                if (passwordVisible) "Hide password" else "Show password"
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(imageVector = image, contentDescription = description, tint = LightGrayText)
+                                Icon(
+                                    imageVector = image,
+                                    contentDescription = description,
+                                    tint = LightGrayText
+                                )
                             }
                         },
                         isError = newPasswordError != null,
@@ -287,7 +518,11 @@ fun ProfileScreen(
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         isError = confirmNewPasswordError != null,
-                        supportingText = { if (confirmNewPasswordError != null) Text(confirmNewPasswordError!!) },
+                        supportingText = {
+                            if (confirmNewPasswordError != null) Text(
+                                confirmNewPasswordError!!
+                            )
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = InputFieldColor,
                             unfocusedContainerColor = InputFieldColor,
@@ -347,8 +582,10 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
-                        onClick = { viewModel.saveUserProfile() },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        onClick = { viewModel.showProfileSummary() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = ActiveButton,
                             contentColor = White,
@@ -359,7 +596,10 @@ fun ProfileScreen(
                         enabled = isSaveButtonEnabled
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(color = White, modifier = Modifier.size(24.dp))
+                            CircularProgressIndicator(
+                                color = White,
+                                modifier = Modifier.size(24.dp)
+                            )
                         } else {
                             Text("Save Changes")
                         }
@@ -368,7 +608,152 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
+
         }
     }
 }
 
+@Composable
+fun shouldShowRequestPermissionRationale(
+    context: android.content.Context,
+    permission: String
+): Boolean {
+    val activity = context as? Activity
+    return activity?.let { ActivityCompat.shouldShowRequestPermissionRationale(it, permission) }
+        ?: false
+}
+
+@Composable
+fun ProfileSummaryCardContent(
+    name: String,
+    lastName: String,
+    email: String,
+    nationality: String,
+    profileImageUri: Uri?,
+    onContinueEditing: () -> Unit,
+    onUpdate: () -> Unit,
+    isLoading: Boolean
+) {
+    Column(
+        modifier = Modifier
+            .wrapContentHeight()
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Card(
+            modifier = Modifier
+                .size(150.dp),
+            shape = RoundedCornerShape(percent = 50),
+            colors = CardDefaults.cardColors(containerColor = InputFieldColor)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (profileImageUri != null) {
+                    AsyncImage(
+                        model = profileImageUri,
+                        contentDescription = "Profile Picture",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(percent = 50))
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = "No Profile Picture",
+                        tint = LightGrayText,
+                        modifier = Modifier.size(80.dp)
+                    )
+                }
+            }
+        }
+
+        Text(
+            text = "$name $lastName",
+            style = MaterialTheme.typography.headlineMedium.copy(color = White, fontWeight = FontWeight.Bold),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 10.dp)
+        )
+
+        ProfileDetailRow(label = "First Name", value = name)
+        ProfileDetailRow(label = "Last Name", value = lastName)
+        ProfileDetailRow(label = "Email", value = email)
+        ProfileDetailRow(label = "Nationality", value = nationality)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedButton(
+                onClick = onContinueEditing,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp)
+                    .padding(end = 8.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = PinkPastel
+                ),
+                border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+                    brush = SolidColor(PinkPastel),
+                    width = 1.dp
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Return", fontSize = 20.sp, textAlign = TextAlign.Center)
+            }
+
+            Button(
+                onClick = onUpdate,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp)
+                    .padding(start = 8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ActiveButton,
+                    contentColor = White,
+                    disabledContainerColor = DisabledButton,
+                    disabledContentColor = DisabledTextButton
+                ),
+                shape = RoundedCornerShape(12.dp),
+                enabled = !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(color = White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Update", fontSize = 20.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileDetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge.copy(color = LightGrayText),
+            modifier = Modifier.weight(0.4f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge.copy(color = White, fontWeight = FontWeight.SemiBold),
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(0.6f)
+        )
+    }
+    HorizontalDivider(thickness = 1.dp, color = LightGrayText.copy(alpha = 0.2f))
+}

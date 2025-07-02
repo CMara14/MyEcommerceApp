@@ -1,5 +1,8 @@
 package com.example.myecommerceapp.presentation.viewmodel
 
+import android.content.Context
+import android.net.Uri
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myecommerceapp.data.model.User
@@ -12,6 +15,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -71,6 +78,9 @@ open class ProfileViewModel @Inject constructor(
     private val _nationalityError = MutableStateFlow<String?>(null)
     open val nationalityError: StateFlow<String?> = _nationalityError.asStateFlow()
 
+    private val _showProfileSummary = MutableStateFlow(false)
+    val showProfileSummary: StateFlow<Boolean> = _showProfileSummary.asStateFlow()
+
     open val isSaveButtonEnabled: StateFlow<Boolean> = combine(
         name,
         lastName,
@@ -103,7 +113,11 @@ open class ProfileViewModel @Inject constructor(
             currentNewPassword.isBlank() ||
                     (currentNewPassword.isNotBlank() && currentConfirmNewPassword.isNotBlank() && currentNewPassword == currentConfirmNewPassword)
 
-        areRequiredFieldsValid && isPasswordValid && isAnyFieldChanged
+        val hasErrors = nameError.value != null || lastNameError.value != null ||
+                newPasswordError.value != null || confirmNewPasswordError.value != null ||
+                nationalityError.value != null
+
+        areRequiredFieldsValid && isPasswordValid && isAnyFieldChanged && !hasErrors
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -129,13 +143,32 @@ open class ProfileViewModel @Inject constructor(
                     _profileImageUri.value = user.profileImage
                     _originalProfileImageUri.value = user.profileImage
                 } else {
-                    _errorMessage.value = "No se pudo cargar el perfil del usuario."
+                    _errorMessage.value = "The user profile could not be loaded."
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Error al cargar perfil"
+                _errorMessage.value = "Error loading profile"
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    fun createImageUri(context: Context): Uri? {
+        val cacheDir = File(context.cacheDir, "images")
+        cacheDir.mkdirs()
+
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val imageFile = File(cacheDir, "JPEG_${timeStamp}_.jpg")
+
+        return try {
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                imageFile
+            )
+        } catch (e: IllegalArgumentException) {
+            _errorMessage.value = "Error creating URI for image: ${e.message}"
+            null
         }
     }
 
@@ -174,7 +207,33 @@ open class ProfileViewModel @Inject constructor(
         _errorMessage.value = null
     }
 
+    fun showProfileSummary() {
+        onNameChanged(_name.value)
+        onLastNameChanged(_lastName.value)
+        onNewPasswordChanged(_newPassword.value)
+        onConfirmNewPasswordChanged(_confirmNewPassword.value)
+        onNationalityChanged(_nationality.value)
+
+        if (nameError.value != null || lastNameError.value != null ||
+            newPasswordError.value != null || confirmNewPasswordError.value != null ||
+            nationalityError.value != null) {
+            _errorMessage.value = "Please correct the errors in the form."
+            return
+        }
+
+        if (!isSaveButtonEnabled.value) {
+            _errorMessage.value = "No valid changes to save."
+            return
+        }
+        _showProfileSummary.value = true
+    }
+
+    fun hideProfileSummary() {
+        _showProfileSummary.value = false
+    }
+
     open fun saveUserProfile() {
+        _showProfileSummary.value = false
         _errorMessage.value = null
         _nameError.value = null
         _lastNameError.value = null
@@ -192,27 +251,27 @@ open class ProfileViewModel @Inject constructor(
         var formValid = true
 
         if (currentName.isBlank()) {
-            _nameError.value = "El nombre no puede estar vacío"
+            _nameError.value = "The name cannot be empty"
             formValid = false
         }
 
         if (currentLastName.isBlank()) {
-            _lastNameError.value = "El apellido no puede estar vacío"
+            _lastNameError.value = "The last name cannot be empty"
             formValid = false
         }
 
         if (currentNewPassword.isNotEmpty() && currentNewPassword.length < 8) {
-            _newPasswordError.value = "La contraseña debe tener al menos 8 caracteres"
+            _newPasswordError.value = "The password must be at least 8 characters long."
             formValid = false
         }
 
         if (currentNewPassword.isNotEmpty() && currentConfirmNewPassword.isNotEmpty() && currentNewPassword != currentConfirmNewPassword) {
-            _confirmNewPasswordError.value = "Las contraseñas no coinciden"
+            _confirmNewPasswordError.value = "Passwords do not match"
             formValid = false
         }
 
         if (currentNationality.isBlank()) {
-            _lastNameError.value = "La nacionalidad no puede estar vacía"
+            _lastNameError.value = "Nationality cannot be empty"
             formValid = false
         }
 
@@ -242,10 +301,10 @@ open class ProfileViewModel @Inject constructor(
                     _confirmNewPassword.value = ""
                     _originalProfileImageUri.value = currentProfileImageUri
                 } else {
-                    _errorMessage.value = "No se pudo actualizar el perfil."
+                    _errorMessage.value = "The profile could not be updated."
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Error al guardar perfil"
+                _errorMessage.value = "Error saving profile"
             } finally {
                 _isLoading.value = false
             }
