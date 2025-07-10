@@ -1,8 +1,8 @@
-package com.example.myecommerceapp.presentation.viewmodel
+package com.example.myecommerceapp.ui.views.screens.productCatalog
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myecommerceapp.data.model.Product
+import com.example.myecommerceapp.domain.model.Product
 import com.example.myecommerceapp.data.repository.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers

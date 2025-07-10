@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.presentation.views.components
+package com.example.myecommerceapp.ui.views.components
 
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults

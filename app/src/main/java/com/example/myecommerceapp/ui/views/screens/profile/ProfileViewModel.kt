@@ -1,11 +1,14 @@
-package com.example.myecommerceapp.presentation.viewmodel
+package com.example.myecommerceapp.ui.views.screens.profile
 
+import android.app.Application
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myecommerceapp.data.model.User
+import com.example.myecommerceapp.MyApplication
+import com.example.myecommerceapp.domain.model.User
 import com.example.myecommerceapp.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,8 +26,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 open class ProfileViewModel @Inject constructor(
+    val myApplication: Application,
     private val authRepository: AuthRepository
-) : ViewModel() {
+) : AndroidViewModel(myApplication) {
 
     private val _name = MutableStateFlow("")
     open val name: StateFlow<String> = _name.asStateFlow()
@@ -51,6 +55,9 @@ open class ProfileViewModel @Inject constructor(
     open val profileImageUri: StateFlow<String?> = _profileImageUri.asStateFlow()
 
     private val _originalProfileImageUri = MutableStateFlow<String?>(null)
+
+    private val _isImageUploading = MutableStateFlow(false)
+    val isImageUploading: StateFlow<Boolean> = _isImageUploading.asStateFlow()
 
 
     private val _isLoading = MutableStateFlow(false)

@@ -79,6 +79,18 @@ dependencies {
     //COIL AsyncImage dependencies
     implementation("io.coil-kt:coil-compose:2.6.0")
 
+    //Cloudinary
+    implementation("com.cloudinary:cloudinary-android:2.3.1")
+
+    //ROOM dependencies
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+
+    //Test dependencies
+    testImplementation("io.mockk:mockk:1.13.5")
+    testImplementation("org.mockito:mockito-core:5.8.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.3.2")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

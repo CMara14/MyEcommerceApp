@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.navigation
+package com.example.myecommerceapp.ui.navigation
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,11 +8,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.myecommerceapp.presentation.views.screens.LoginScreen
-import com.example.myecommerceapp.presentation.views.screens.RegisterScreen
+import com.example.myecommerceapp.ui.views.screens.login.LoginScreen
+import com.example.myecommerceapp.ui.views.screens.register.RegisterScreen
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.myecommerceapp.presentation.viewmodel.LoginViewModel
-import com.example.myecommerceapp.presentation.viewmodel.RegisterViewModel
+import com.example.myecommerceapp.ui.views.screens.login.LoginViewModel
+import com.example.myecommerceapp.ui.views.screens.register.RegisterViewModel
 import com.example.myecommerceapp.MainActivityContent
 
 @Composable

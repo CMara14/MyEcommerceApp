@@ -19,19 +19,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.myecommerceapp.ui.theme.MyEcommerceAppTheme
-import com.example.myecommerceapp.presentation.viewmodel.LoginViewModel
+import com.example.myecommerceapp.ui.views.screens.login.LoginViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.myecommerceapp.data.model.BottomNavItem
-import com.example.myecommerceapp.navigation.AppNavigationRoutes
-import com.example.myecommerceapp.navigation.BottomNavRoutes
-import com.example.myecommerceapp.navigation.AppNavigation
-import com.example.myecommerceapp.presentation.viewmodel.ProductCatalogViewModel
-import com.example.myecommerceapp.presentation.views.components.BottomNavigationBar
-import com.example.myecommerceapp.presentation.views.screens.CartScreen
-import com.example.myecommerceapp.presentation.views.screens.OrdersScreen
-import com.example.myecommerceapp.presentation.views.screens.ProductCatalogScreen
-import com.example.myecommerceapp.presentation.views.screens.ProfileScreen
+import com.example.myecommerceapp.domain.model.BottomNavItem
+import com.example.myecommerceapp.ui.navigation.AppNavigationRoutes
+import com.example.myecommerceapp.ui.navigation.BottomNavRoutes
+import com.example.myecommerceapp.ui.navigation.AppNavigation
+import com.example.myecommerceapp.ui.views.screens.productCatalog.ProductCatalogViewModel
+import com.example.myecommerceapp.ui.views.components.BottomNavigationBar
+import com.example.myecommerceapp.ui.views.screens.cart.CartScreen
+import com.example.myecommerceapp.ui.views.screens.cart.CartViewModel
+import com.example.myecommerceapp.ui.views.screens.orders.OrdersScreen
+import com.example.myecommerceapp.ui.views.screens.productCatalog.ProductCatalogScreen
+import com.example.myecommerceapp.ui.views.screens.profile.ProfileScreen
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -76,6 +77,7 @@ fun MainActivityContent(
     val bottomNavController = rememberNavController()
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val sharedCartViewModel: CartViewModel = hiltViewModel()
 
     val bottomNavItems = listOf(
         BottomNavItem(BottomNavRoutes.HOME_ROUTE, Icons.Filled.Home, "Home"),
@@ -111,13 +113,19 @@ fun MainActivityContent(
         ) {
             composable(BottomNavRoutes.HOME_ROUTE) {
                 val productCatalogViewModel: ProductCatalogViewModel = hiltViewModel()
-                ProductCatalogScreen(viewModel = productCatalogViewModel)
+                ProductCatalogScreen(
+                    viewModel = productCatalogViewModel,
+                    cartViewModel = sharedCartViewModel
+                )
             }
             composable(BottomNavRoutes.ORDER_ROUTE) {
                 OrdersScreen()
             }
             composable(BottomNavRoutes.CART_ROUTE) {
-                CartScreen()
+                CartScreen(
+                    viewModel = sharedCartViewModel,
+                    navController = bottomNavController
+                )
             }
             composable(BottomNavRoutes.PROFILE_ROUTE) {
                 ProfileScreen(onLogout = onLogoutGlobal)

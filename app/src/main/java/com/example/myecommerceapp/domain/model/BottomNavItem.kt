@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.data.model
+package com.example.myecommerceapp.domain.model
 
 import androidx.compose.ui.graphics.vector.ImageVector
 

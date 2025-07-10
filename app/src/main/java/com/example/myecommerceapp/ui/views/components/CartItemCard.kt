@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.presentation.views.components
+package com.example.myecommerceapp.ui.views.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -26,13 +26,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.myecommerceapp.data.model.CartItem
+import com.example.myecommerceapp.domain.model.CartItem
 import com.example.myecommerceapp.ui.theme.InputFieldColor
 import com.example.myecommerceapp.ui.theme.LightGrayText
 import com.example.myecommerceapp.ui.theme.MyEcommerceAppTheme
 import com.example.myecommerceapp.ui.theme.PinkPastel
 import com.example.myecommerceapp.ui.theme.White
 import java.text.DecimalFormat
+import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
@@ -41,7 +42,9 @@ fun CartItemCard(
     onQuantityChange: (String, Int) -> Unit,
     onRemoveItem: (String) -> Unit
 ) {
-    val currencyFormatter = remember { DecimalFormat("$#,##0.00", java.text.DecimalFormatSymbols(Locale.US)) }
+    val currencyFormatter = remember {
+        NumberFormat.getCurrencyInstance(Locale("es", "AR"))
+    }
 
     Card(
         modifier = Modifier

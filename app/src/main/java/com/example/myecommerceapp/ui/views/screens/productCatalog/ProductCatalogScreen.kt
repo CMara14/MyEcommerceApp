@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.presentation.views.screens
+package com.example.myecommerceapp.ui.views.screens.productCatalog
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,17 +25,18 @@ import com.example.myecommerceapp.ui.theme.InputFieldColor
 import com.example.myecommerceapp.ui.theme.LightGrayText
 import com.example.myecommerceapp.ui.theme.PinkPastel
 import com.example.myecommerceapp.ui.theme.White
-import com.example.myecommerceapp.presentation.viewmodel.ProductCatalogViewModel
-import com.example.myecommerceapp.presentation.viewmodel.SortOrder
-import com.example.myecommerceapp.presentation.views.components.CategoryFilterChip
-import com.example.myecommerceapp.presentation.views.components.ProductCard
+import com.example.myecommerceapp.ui.views.components.CategoryFilterChip
+import com.example.myecommerceapp.ui.views.components.ProductCard
+import com.example.myecommerceapp.ui.views.screens.cart.CartViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductCatalogScreen(
     viewModel: ProductCatalogViewModel = hiltViewModel(),
+    cartViewModel: CartViewModel
 ) {
     val products by viewModel.filteredProducts.collectAsState()
+    val cartItems by cartViewModel.cartItems.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val inputSearch by viewModel.inputSearch.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -124,7 +125,7 @@ fun ProductCatalogScreen(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 16.dp)
+                        .padding(vertical = 10.dp)
                 )
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -149,9 +150,18 @@ fun ProductCatalogScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(products) { product ->
-                        ProductCard(product = product) {
-                            // TODO: add action when clicking on the product
-                        }
+                        val currentQuantityInCart = cartItems.find { it.productId == product.id }?.quantity ?: 0
+                        ProductCard(
+                            product = product,
+                            initialQuantity = currentQuantityInCart,
+                            onClick = { clickedProduct ->
+                                // TODO: add action when clicking on the product
+                            },
+                            onQuantityChange = { updatedProduct, newQuantity ->
+                                cartViewModel.addOrUpdateProduct(updatedProduct, newQuantity)
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }

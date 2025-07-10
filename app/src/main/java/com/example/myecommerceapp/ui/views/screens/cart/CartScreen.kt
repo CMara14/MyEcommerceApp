@@ -1,10 +1,13 @@
-package com.example.myecommerceapp.presentation.views.screens
+package com.example.myecommerceapp.ui.views.screens.cart
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,26 +17,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myecommerceapp.data.model.CartItem
-import com.example.myecommerceapp.presentation.views.components.CartItemCard
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import com.example.myecommerceapp.domain.model.CartItem
+import com.example.myecommerceapp.ui.navigation.BottomNavRoutes
+import com.example.myecommerceapp.ui.views.components.CartItemCard
 import com.example.myecommerceapp.ui.theme.DarkBackground
 import com.example.myecommerceapp.ui.theme.InputFieldColor
 import com.example.myecommerceapp.ui.theme.LightGrayText
 import com.example.myecommerceapp.ui.theme.MyEcommerceAppTheme
 import com.example.myecommerceapp.ui.theme.PinkPastel
 import com.example.myecommerceapp.ui.theme.White
-import java.text.DecimalFormat
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CartScreen() {
-    val mockCartItems = remember { mutableStateListOf(
-        CartItem("smw001", "Smartwatch Fit Pro", "https://images.unsplash.com/photo-1638798486151-f5247b3c7261?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", 65000.0, 1),
-        CartItem("head002", "Auriculares Bluetooth", "https://images.unsplash.com/photo-1705614055003-d2c0b47d098d?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", 80500.0, 2),
-        CartItem("shirt003", "Camiseta Deportiva DryFit", "https://images.unsplash.com/photo-1737094547812-1499f4b700a0?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", 25000.0, 1),
-        CartItem("perf004", "Perfume Chanel N° 5", "https://images.unsplash.com/photo-1631701464241-99f7f0ed6f8f?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", 350000.0, 1),
-    )}
+fun CartScreen(
+    viewModel: CartViewModel,
+    navController: NavHostController
+) {
+    val cartItems by viewModel.cartItems.collectAsState()
+    val totalProducts by viewModel.totalProducts.collectAsState()
+    val totalGeneral by viewModel.totalGeneral.collectAsState()
 
     Scaffold(
         topBar = {
@@ -54,9 +59,45 @@ fun CartScreen() {
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (mockCartItems.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Your cart is empty.", color = LightGrayText, fontSize = 18.sp)
+            if (cartItems.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ShoppingCart,
+                        contentDescription = "Empty Cart",
+                        modifier = Modifier.size(80.dp),
+                        tint = LightGrayText
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Your cart is empty.",
+                        color = LightGrayText,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Add some amazing products!",
+                        color = LightGrayText,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = { navController.navigate(BottomNavRoutes.HOME_ROUTE) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PinkPastel,
+                            contentColor = White
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .height(48.dp)
+                    ) {
+                        Text("Start Shopping", fontSize = 16.sp)
+                    }
                 }
             } else {
                 LazyColumn(
@@ -64,28 +105,25 @@ fun CartScreen() {
                     contentPadding = PaddingValues(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(mockCartItems) { item ->
+                    items(cartItems) { item ->
                         CartItemCard(
                             item = item,
-                            onQuantityChange = { productId, newQuantity ->
-                                val index = mockCartItems.indexOfFirst { it.productId == productId }
-                                if (index != -1) {
-                                    mockCartItems[index] = mockCartItems[index].copy(quantity = newQuantity)
-                                }
-                            },
-                            onRemoveItem = { productId ->
-                                mockCartItems.removeIf { it.productId == productId }
-                            }
+                            onQuantityChange = viewModel::updateQuantity,
+                            onRemoveItem = viewModel::removeItem
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                CartSummary(cartItems = mockCartItems)
+                CartSummary(
+                    totalProducts = totalProducts,
+                    totalGeneral = totalGeneral,
+                    currencyFormatter = viewModel::formatCurrency
+                )
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
-                    onClick = { /* TODO: Implement checkout logic */ },
+                    onClick = viewModel::proceedToCheckout,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
@@ -95,7 +133,7 @@ fun CartScreen() {
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Proceed to Checkout")
+                    Text("Proceed to Checkout", fontSize = 20.sp)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -104,12 +142,11 @@ fun CartScreen() {
 }
 
 @Composable
-fun CartSummary(cartItems: List<CartItem>) {
-    val totalProducts = cartItems.sumOf { it.quantity }
-    val totalGeneral = cartItems.sumOf { it.unitPrice * it.quantity }
-
-    val currencyFormatter = remember { DecimalFormat("$#,##0.00", java.text.DecimalFormatSymbols(Locale.US)) }
-
+fun CartSummary(
+    totalProducts: Int,
+    totalGeneral: Double,
+    currencyFormatter: (Double) -> String
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -128,7 +165,7 @@ fun CartSummary(cartItems: List<CartItem>) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Total Products:", color = LightGrayText)
+            Text("Products:", color = LightGrayText)
             Text("$totalProducts", color = White, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(4.dp))
@@ -138,15 +175,12 @@ fun CartSummary(cartItems: List<CartItem>) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Total:", color = LightGrayText)
-            Text(currencyFormatter.format(totalGeneral), color = PinkPastel, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+            Text(
+                currencyFormatter(totalGeneral),
+                color = PinkPastel,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 20.sp
+            )
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun CartScreenPreview() {
-    MyEcommerceAppTheme {
-        CartScreen()
     }
 }

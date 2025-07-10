@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.presentation.views.screens
+package com.example.myecommerceapp.ui.views.screens.login
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,7 +15,6 @@ import com.example.myecommerceapp.ui.theme.DarkBackground
 import com.example.myecommerceapp.ui.theme.InputFieldColor
 import com.example.myecommerceapp.ui.theme.LightGrayText
 import com.example.myecommerceapp.ui.theme.White
-import com.example.myecommerceapp.presentation.viewmodel.LoginViewModel
 import androidx.compose.ui.unit.sp
 import com.example.myecommerceapp.ui.theme.ActiveButton
 import com.example.myecommerceapp.ui.theme.DisabledButton
@@ -148,7 +147,7 @@ fun LoginScreen(
                     if (isLoading) {
                         CircularProgressIndicator(color = White, modifier = Modifier.size(24.dp))
                     } else {
-                        Text("Login")
+                        Text("Login", fontSize = 20.sp)
                     }
                 }
             }

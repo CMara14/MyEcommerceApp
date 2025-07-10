@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.navigation
+package com.example.myecommerceapp.ui.navigation
 
 object AppNavigationRoutes {
     const val LOGIN_ROUTE = "login_route"

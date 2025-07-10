@@ -1,7 +1,7 @@
 package com.example.myecommerceapp.data.repository
 
 import android.content.Context
-import com.example.myecommerceapp.data.model.User
+import com.example.myecommerceapp.domain.model.User
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import javax.inject.Inject

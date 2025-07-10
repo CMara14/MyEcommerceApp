@@ -1,6 +1,6 @@
 package com.example.myecommerceapp.data.repository
 
-import com.example.myecommerceapp.data.model.User
+import com.example.myecommerceapp.domain.model.User
 
 interface AuthRepository {
     fun isLoggedIn(): Boolean

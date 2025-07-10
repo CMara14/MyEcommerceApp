@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.presentation.views.screens
+package com.example.myecommerceapp.ui.views.screens.profile
 
 import android.Manifest
 import android.app.Activity
@@ -30,7 +30,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.example.myecommerceapp.presentation.viewmodel.ProfileViewModel
 import com.example.myecommerceapp.ui.theme.ActiveButton
 import com.example.myecommerceapp.ui.theme.DarkBackground
 import com.example.myecommerceapp.ui.theme.DisabledButton
@@ -48,7 +47,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
-import androidx.compose.ui.window.Dialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -346,10 +344,7 @@ fun ProfileScreen(
                         .padding(horizontal = 24.dp)
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Spacer(modifier = Modifier.height(16.dp))
-
                     Card(
                         modifier = Modifier
                             .size(120.dp)
@@ -380,9 +375,7 @@ fun ProfileScreen(
                             }
                         }
                     }
-
                     Spacer(modifier = Modifier.height(10.dp))
-
                     OutlinedTextField(
                         value = name,
                         onValueChange = { viewModel.onNameChanged(it) },
@@ -413,7 +406,6 @@ fun ProfileScreen(
                                 }
                             }
                     )
-
                     OutlinedTextField(
                         value = lastName,
                         onValueChange = { viewModel.onLastNameChanged(it) },
@@ -444,7 +436,6 @@ fun ProfileScreen(
                                 }
                             }
                     )
-
                     OutlinedTextField(
                         value = email,
                         onValueChange = { },
@@ -464,7 +455,7 @@ fun ProfileScreen(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
-
+                   Spacer(modifier = Modifier.height(15.dp))
                     OutlinedTextField(
                         value = newPassword,
                         onValueChange = { viewModel.onNewPasswordChanged(it) },
@@ -510,7 +501,6 @@ fun ProfileScreen(
                                 }
                             }
                     )
-
                     OutlinedTextField(
                         value = confirmNewPassword,
                         onValueChange = { viewModel.onConfirmNewPasswordChanged(it) },
@@ -547,7 +537,6 @@ fun ProfileScreen(
                                 }
                             }
                     )
-
                     OutlinedTextField(
                         value = nationality,
                         onValueChange = { viewModel.onNationalityChanged(it) },
@@ -578,9 +567,7 @@ fun ProfileScreen(
                                 }
                             }
                     )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
+                    Spacer(modifier = Modifier.height(10.dp))
                     Button(
                         onClick = { viewModel.showProfileSummary() },
                         modifier = Modifier
@@ -601,11 +588,9 @@ fun ProfileScreen(
                                 modifier = Modifier.size(24.dp)
                             )
                         } else {
-                            Text("Save Changes")
+                            Text("Save Changes", fontSize = 20.sp)
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 

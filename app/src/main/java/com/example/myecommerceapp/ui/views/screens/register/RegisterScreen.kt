@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.presentation.views.screens
+package com.example.myecommerceapp.ui.views.screens.register
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,7 +19,6 @@ import com.example.myecommerceapp.ui.theme.DisabledTextButton
 import com.example.myecommerceapp.ui.theme.InputFieldColor
 import com.example.myecommerceapp.ui.theme.LightGrayText
 import com.example.myecommerceapp.ui.theme.White
-import com.example.myecommerceapp.presentation.viewmodel.RegisterViewModel
 
 @Composable
 fun RegisterScreen(
@@ -195,7 +194,7 @@ fun RegisterScreen(
                 if (isLoading) {
                     CircularProgressIndicator(color = White, modifier = Modifier.size(24.dp))
                 } else {
-                    Text("Register")
+                    Text("Register", fontSize = 20.sp)
                 }
             }
 

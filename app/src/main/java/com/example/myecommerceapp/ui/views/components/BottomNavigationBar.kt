@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.presentation.views.components
+package com.example.myecommerceapp.ui.views.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
