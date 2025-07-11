@@ -1,16 +1,16 @@
 package com.example.myecommerceapp.ui.views.screens.profile
+import com.example.myecommerceapp.BuildConfig
 
 import android.app.Application
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myecommerceapp.MyApplication
 import com.example.myecommerceapp.domain.model.User
 import com.example.myecommerceapp.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,72 +23,114 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
+import com.cloudinary.Cloudinary
+import com.cloudinary.utils.ObjectUtils
 
 @HiltViewModel
-open class ProfileViewModel @Inject constructor(
+class ProfileViewModel @Inject constructor(
     val myApplication: Application,
     private val authRepository: AuthRepository
 ) : AndroidViewModel(myApplication) {
 
     private val _name = MutableStateFlow("")
-    open val name: StateFlow<String> = _name.asStateFlow()
+    val name: StateFlow<String> = _name.asStateFlow()
 
     private val _lastName = MutableStateFlow("")
-    open val lastName: StateFlow<String> = _lastName.asStateFlow()
+    val lastName: StateFlow<String> = _lastName.asStateFlow()
 
     private val _email = MutableStateFlow("")
-    open val email: StateFlow<String> = _email.asStateFlow()
+    val email: StateFlow<String> = _email.asStateFlow()
 
     private val _password = MutableStateFlow("")
-    open val password: StateFlow<String> = _password.asStateFlow()
+    val password: StateFlow<String> = _password.asStateFlow()
 
     private val _newPassword = MutableStateFlow("")
-    open val newPassword: StateFlow<String> = _newPassword.asStateFlow()
+    val newPassword: StateFlow<String> = _newPassword.asStateFlow()
 
     private val _confirmNewPassword = MutableStateFlow("")
-    open val confirmNewPassword: StateFlow<String> = _confirmNewPassword.asStateFlow()
+    val confirmNewPassword: StateFlow<String> = _confirmNewPassword.asStateFlow()
 
     private val _nationality = MutableStateFlow("")
-    open val nationality: StateFlow<String> = _nationality.asStateFlow()
+    val nationality: StateFlow<String> = _nationality.asStateFlow()
 
     private val _profileImageUri = MutableStateFlow<String?>(null)
-    open val profileImageUri: StateFlow<String?> = _profileImageUri.asStateFlow()
+    val profileImageUri: StateFlow<String?> = _profileImageUri.asStateFlow()
 
     private val _originalProfileImageUri = MutableStateFlow<String?>(null)
 
     private val _isImageUploading = MutableStateFlow(false)
     val isImageUploading: StateFlow<Boolean> = _isImageUploading.asStateFlow()
 
+    private val cloudinary = Cloudinary(
+        mapOf(
+            "cloud_name" to BuildConfig.CLOUD_NAME,
+            "api_key" to BuildConfig.CLOUD_API_KEY,
+            "api_secret" to BuildConfig.CLOUD_API_SECRET
+        )
+    )
+
+    fun uploadImageAndSaveProfile(imageUri: Uri?) {
+        if (imageUri == null) {
+            _errorMessage.value = "No picture selected"
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _isImageUploading.value = true
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                val inputStream = myApplication.contentResolver.openInputStream(imageUri)
+                val uploadResult =
+                    cloudinary.uploader()
+                        .upload(inputStream, ObjectUtils.asMap("upload_preset", "profile_image"))
+
+                val imageUrl = uploadResult["secure_url"] as String
+
+                _profileImageUri.value = imageUrl
+                saveUserProfile()
+
+            } catch (e: Exception) {
+                _errorMessage.value = "Error uploading image"
+                _profileImageUri.value =
+                    _originalProfileImageUri.value
+            } finally {
+                _isImageUploading.value = false
+                _isLoading.value = false
+            }
+        }
+    }
+
 
     private val _isLoading = MutableStateFlow(false)
-    open val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _saveSuccess = MutableStateFlow(false)
-    open val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
+    val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
-    open val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
 
     private val _nameError = MutableStateFlow<String?>(null)
-    open val nameError: StateFlow<String?> = _nameError.asStateFlow()
+    val nameError: StateFlow<String?> = _nameError.asStateFlow()
 
     private val _lastNameError = MutableStateFlow<String?>(null)
-    open val lastNameError: StateFlow<String?> = _lastNameError.asStateFlow()
+    val lastNameError: StateFlow<String?> = _lastNameError.asStateFlow()
 
     private val _newPasswordError = MutableStateFlow<String?>(null)
-    open val newPasswordError: StateFlow<String?> = _newPasswordError.asStateFlow()
+    val newPasswordError: StateFlow<String?> = _newPasswordError.asStateFlow()
 
     private val _confirmNewPasswordError = MutableStateFlow<String?>(null)
-    open val confirmNewPasswordError: StateFlow<String?> = _confirmNewPasswordError.asStateFlow()
+    val confirmNewPasswordError: StateFlow<String?> = _confirmNewPasswordError.asStateFlow()
 
     private val _nationalityError = MutableStateFlow<String?>(null)
-    open val nationalityError: StateFlow<String?> = _nationalityError.asStateFlow()
+    val nationalityError: StateFlow<String?> = _nationalityError.asStateFlow()
 
     private val _showProfileSummary = MutableStateFlow(false)
     val showProfileSummary: StateFlow<Boolean> = _showProfileSummary.asStateFlow()
 
-    open val isSaveButtonEnabled: StateFlow<Boolean> = combine(
+    val isSaveButtonEnabled: StateFlow<Boolean> = combine(
         name,
         lastName,
         newPassword,
@@ -105,11 +147,11 @@ open class ProfileViewModel @Inject constructor(
 
         val isAnyFieldChanged =
             currentName != (_name.value) ||
-            currentLastName != (_lastName.value) ||
-            currentNationality != (_nationality.value) ||
-            currentNewPassword.isNotBlank() ||
-            currentConfirmNewPassword.isNotBlank() ||
-            currentProfileImageUri != (_originalProfileImageUri.value)
+                    currentLastName != (_lastName.value) ||
+                    currentNationality != (_nationality.value) ||
+                    currentNewPassword.isNotBlank() ||
+                    currentConfirmNewPassword.isNotBlank() ||
+                    currentProfileImageUri != (_originalProfileImageUri.value)
 
         val areRequiredFieldsValid =
             currentName.isNotBlank() &&
@@ -135,7 +177,7 @@ open class ProfileViewModel @Inject constructor(
         loadUserProfile()
     }
 
-    open fun loadUserProfile() {
+    fun loadUserProfile() {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
@@ -164,7 +206,8 @@ open class ProfileViewModel @Inject constructor(
         val cacheDir = File(context.cacheDir, "images")
         cacheDir.mkdirs()
 
-        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val timeStamp: String =
+            SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val imageFile = File(cacheDir, "JPEG_${timeStamp}_.jpg")
 
         return try {
@@ -179,36 +222,36 @@ open class ProfileViewModel @Inject constructor(
         }
     }
 
-    open fun onProfileImageSelected(uri: String?) {
+    fun onProfileImageSelected(uri: String?) {
         _profileImageUri.value = uri
     }
 
-    open fun onNameChanged(newName: String) {
+    fun onNameChanged(newName: String) {
         _name.value = newName
         _nameError.value = null
         _errorMessage.value = null
     }
 
-    open fun onLastNameChanged(newLastName: String) {
+    fun onLastNameChanged(newLastName: String) {
         _lastName.value = newLastName
         _lastNameError.value = null
         _errorMessage.value = null
     }
 
-    open fun onNewPasswordChanged(newPass: String) {
+    fun onNewPasswordChanged(newPass: String) {
         _newPassword.value = newPass
         _errorMessage.value = null
         _newPasswordError.value = null
         _confirmNewPasswordError.value = null
     }
 
-    open fun onConfirmNewPasswordChanged(confirmPass: String) {
+    fun onConfirmNewPasswordChanged(confirmPass: String) {
         _confirmNewPassword.value = confirmPass
         _errorMessage.value = null
         _confirmNewPasswordError.value = null
     }
 
-    open fun onNationalityChanged(newNationality: String) {
+    fun onNationalityChanged(newNationality: String) {
         _nationality.value = newNationality
         _nationalityError.value = null
         _errorMessage.value = null
@@ -223,7 +266,8 @@ open class ProfileViewModel @Inject constructor(
 
         if (nameError.value != null || lastNameError.value != null ||
             newPasswordError.value != null || confirmNewPasswordError.value != null ||
-            nationalityError.value != null) {
+            nationalityError.value != null
+        ) {
             _errorMessage.value = "Please correct the errors in the form."
             return
         }
@@ -239,7 +283,7 @@ open class ProfileViewModel @Inject constructor(
         _showProfileSummary.value = false
     }
 
-    open fun saveUserProfile() {
+    fun saveUserProfile() {
         _showProfileSummary.value = false
         _errorMessage.value = null
         _nameError.value = null
@@ -290,7 +334,7 @@ open class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val updatedPassword =
-                    if (currentNewPassword.isNotBlank()) currentNewPassword else password.value
+                    currentNewPassword.ifBlank { password.value }
 
                 val updatedUser = User(
                     email = email.value,
@@ -318,11 +362,11 @@ open class ProfileViewModel @Inject constructor(
         }
     }
 
-    open fun resetSaveSuccess() {
+    fun resetSaveSuccess() {
         _saveSuccess.value = false
     }
 
-    open fun clearErrorMessage() {
+    fun clearErrorMessage() {
         _errorMessage.value = null
     }
 }

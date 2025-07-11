@@ -85,18 +85,26 @@ fun ProfileScreen(
     var showImageSourceSelectionDialog by remember { mutableStateOf(false) }
     var permissionToRequest: String? by remember { mutableStateOf(null) }
 
+    var tempCameraImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        viewModel.onProfileImageSelected(uri?.toString())
+        viewModel.uploadImageAndSaveProfile(uri)
     }
 
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
-        if (!success) {
+        if (success) {
+            tempCameraImageUri?.let { uri ->
+                viewModel.uploadImageAndSaveProfile(uri)
+                tempCameraImageUri = null
+            }
+        } else {
             viewModel.onProfileImageSelected(null)
+            Toast.makeText(context, "No picture", Toast.LENGTH_SHORT).show()
+            tempCameraImageUri = null
         }
     }
 
@@ -106,8 +114,10 @@ fun ProfileScreen(
         if (isGranted) {
             val uri = viewModel.createImageUri(context)
             if (uri != null) {
-                viewModel.onProfileImageSelected(uri.toString())
+                tempCameraImageUri = uri
                 takePictureLauncher.launch(uri)
+            } else {
+                Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -162,8 +172,10 @@ fun ProfileScreen(
             ) == PackageManager.PERMISSION_GRANTED -> {
                 val uri = viewModel.createImageUri(context)
                 if (uri != null) {
-                    viewModel.onProfileImageSelected(uri.toString())
+                    tempCameraImageUri = uri
                     takePictureLauncher.launch(uri)
+                } else {
+                    Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show()
                 }
             }
 
