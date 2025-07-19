@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.ui.views.components
+package com.example.myecommerceapp.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -32,7 +32,6 @@ import com.example.myecommerceapp.ui.theme.LightGrayText
 import com.example.myecommerceapp.ui.theme.MyEcommerceAppTheme
 import com.example.myecommerceapp.ui.theme.PinkPastel
 import com.example.myecommerceapp.ui.theme.White
-import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.Locale
 

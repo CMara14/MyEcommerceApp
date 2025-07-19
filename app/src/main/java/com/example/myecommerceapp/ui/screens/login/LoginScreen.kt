@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.ui.views.screens.login
+package com.example.myecommerceapp.ui.screens.login
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape

@@ -19,20 +19,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.myecommerceapp.ui.theme.MyEcommerceAppTheme
-import com.example.myecommerceapp.ui.views.screens.login.LoginViewModel
+import com.example.myecommerceapp.ui.screens.login.LoginViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.myecommerceapp.domain.model.BottomNavItem
 import com.example.myecommerceapp.ui.navigation.AppNavigationRoutes
 import com.example.myecommerceapp.ui.navigation.BottomNavRoutes
 import com.example.myecommerceapp.ui.navigation.AppNavigation
-import com.example.myecommerceapp.ui.views.screens.productCatalog.ProductCatalogViewModel
-import com.example.myecommerceapp.ui.views.components.BottomNavigationBar
-import com.example.myecommerceapp.ui.views.screens.cart.CartScreen
-import com.example.myecommerceapp.ui.views.screens.cart.CartViewModel
-import com.example.myecommerceapp.ui.views.screens.orders.OrdersScreen
-import com.example.myecommerceapp.ui.views.screens.productCatalog.ProductCatalogScreen
-import com.example.myecommerceapp.ui.views.screens.profile.ProfileScreen
+import com.example.myecommerceapp.ui.screens.productCatalog.ProductCatalogViewModel
+import com.example.myecommerceapp.ui.components.BottomNavigationBar
+import com.example.myecommerceapp.ui.screens.cart.CartScreen
+import com.example.myecommerceapp.ui.screens.cart.CartViewModel
+import com.example.myecommerceapp.ui.screens.orders.OrdersScreen
+import com.example.myecommerceapp.ui.screens.productCatalog.ProductCatalogScreen
+import com.example.myecommerceapp.ui.screens.profile.ProfileScreen
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

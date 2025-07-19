@@ -11,9 +11,6 @@
       <SelectionState runConfigName="RegisterScreenPreview">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="LoginScreenPreview">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
       <SelectionState runConfigName="CartSummaryPreview">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>

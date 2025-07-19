@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.ui.views.screens.profile
+package com.example.myecommerceapp.ui.screens.profile
 
 import android.Manifest
 import android.app.Activity

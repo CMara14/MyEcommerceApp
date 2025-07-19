@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.ui.views.screens.productCatalog
+package com.example.myecommerceapp.ui.screens.productCatalog
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,9 +25,9 @@ import com.example.myecommerceapp.ui.theme.InputFieldColor
 import com.example.myecommerceapp.ui.theme.LightGrayText
 import com.example.myecommerceapp.ui.theme.PinkPastel
 import com.example.myecommerceapp.ui.theme.White
-import com.example.myecommerceapp.ui.views.components.CategoryFilterChip
-import com.example.myecommerceapp.ui.views.components.ProductCard
-import com.example.myecommerceapp.ui.views.screens.cart.CartViewModel
+import com.example.myecommerceapp.ui.components.CategoryFilterChip
+import com.example.myecommerceapp.ui.components.ProductCard
+import com.example.myecommerceapp.ui.screens.cart.CartViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.ui.views.screens.register
+package com.example.myecommerceapp.ui.screens.register
 
 import android.util.Patterns
 import androidx.lifecycle.ViewModel

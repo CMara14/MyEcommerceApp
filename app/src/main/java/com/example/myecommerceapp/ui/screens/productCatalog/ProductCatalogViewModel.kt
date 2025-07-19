@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.ui.views.screens.productCatalog
+package com.example.myecommerceapp.ui.screens.productCatalog
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

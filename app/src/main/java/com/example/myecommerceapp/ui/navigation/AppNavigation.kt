@@ -8,11 +8,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.myecommerceapp.ui.views.screens.login.LoginScreen
-import com.example.myecommerceapp.ui.views.screens.register.RegisterScreen
+import com.example.myecommerceapp.ui.screens.login.LoginScreen
+import com.example.myecommerceapp.ui.screens.register.RegisterScreen
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.myecommerceapp.ui.views.screens.login.LoginViewModel
-import com.example.myecommerceapp.ui.views.screens.register.RegisterViewModel
+import com.example.myecommerceapp.ui.screens.login.LoginViewModel
+import com.example.myecommerceapp.ui.screens.register.RegisterViewModel
 import com.example.myecommerceapp.MainActivityContent
 
 @Composable

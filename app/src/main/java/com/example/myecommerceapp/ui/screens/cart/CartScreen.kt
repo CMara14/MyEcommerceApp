@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.ui.views.screens.cart
+package com.example.myecommerceapp.ui.screens.cart
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,19 +13,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.myecommerceapp.domain.model.CartItem
 import com.example.myecommerceapp.ui.navigation.BottomNavRoutes
-import com.example.myecommerceapp.ui.views.components.CartItemCard
+import com.example.myecommerceapp.ui.components.CartItemCard
 import com.example.myecommerceapp.ui.theme.DarkBackground
 import com.example.myecommerceapp.ui.theme.InputFieldColor
 import com.example.myecommerceapp.ui.theme.LightGrayText
-import com.example.myecommerceapp.ui.theme.MyEcommerceAppTheme
 import com.example.myecommerceapp.ui.theme.PinkPastel
 import com.example.myecommerceapp.ui.theme.White
 

@@ -1,4 +1,4 @@
-package com.example.myecommerceapp.ui.views.screens.orders
+package com.example.myecommerceapp.ui.screens.orders
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
