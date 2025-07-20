@@ -2,123 +2,114 @@ package com.example.myecommerceapp.ui.screens.productCatalog
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myecommerceapp.domain.model.Product
+import com.example.myecommerceapp.data.repository.CartRepository
 import com.example.myecommerceapp.data.repository.ProductRepository
+import com.example.myecommerceapp.domain.model.CartItem
+import com.example.myecommerceapp.domain.model.Product
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import kotlinx.coroutines.flow.*
 
-open class SortOrder {
-    object None : SortOrder()
-    object Ascending : SortOrder()
-    object Descending : SortOrder()
+sealed class SortOrder {
+    data object None : SortOrder()
+    data object Ascending : SortOrder()
+    data object Descending : SortOrder()
 }
 
 @HiltViewModel
 class ProductCatalogViewModel @Inject constructor(
-    private val productRepository: ProductRepository
+    productRepository: ProductRepository,
+    private val cartRepository: CartRepository
 ) : ViewModel() {
-
-    private val _allProducts = MutableStateFlow<List<Product>>(emptyList())
-    val products: StateFlow<List<Product>> = _allProducts.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _inputSearch = MutableStateFlow("")
     val inputSearch: StateFlow<String> = _inputSearch.asStateFlow()
 
-    private val _selectedCategory = MutableStateFlow<String?>(null)
+    private val _selectedCategory = MutableStateFlow<String?>("All")
     val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
 
     private val _currentSortOrder = MutableStateFlow<SortOrder>(SortOrder.None)
     val currentSortOrder: StateFlow<SortOrder> = _currentSortOrder.asStateFlow()
 
-    val categories: StateFlow<List<String>> = _allProducts
-        .map { products ->
-            listOf("All") + products.map { it.category }.distinct().sorted()
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = listOf("All")
-        )
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val allProductsFlow: StateFlow<List<Product>> =
+        productRepository.getAllProducts()
+            .onStart { _isLoading.value = true }
+            .onEach { _isLoading.value = false }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+    private val cartItemsFlow: StateFlow<List<CartItem>> =
+        cartRepository.getCartItems()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+    val categories: StateFlow<List<String>> =
+        allProductsFlow
+            .map { products ->
+                listOf("All") + products.map { it.category }.distinct().sorted()
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = listOf("All")
+            )
 
     val filteredProducts: StateFlow<List<Product>> =
         combine(
-            _allProducts,
-            _inputSearch.debounce(300L).distinctUntilChanged(),
-            _selectedCategory,
-            _currentSortOrder
+            allProductsFlow,
+            inputSearch.debounce(300).distinctUntilChanged(),
+            selectedCategory,
+            currentSortOrder
         ) { allItems, query, category, sortOrder ->
-            val filteredList = allItems.filter { product ->
-                val matchesSearch = if (query.isBlank()) {
-                    true
-                } else {
-                    product.name.contains(query, ignoreCase = true)
-                }
+            var list = allItems
 
-                val matchesCategory = if (category == null || category == "All") {
-                    true
-                } else {
-                    product.category == category
-                }
-                matchesSearch && matchesCategory
+            if (query.isNotBlank()) {
+                list = list.filter { it.name.contains(query, ignoreCase = true) }
             }
 
-            when (sortOrder) {
-                is SortOrder.Ascending -> filteredList.sortedBy { it.price }
-                is SortOrder.Descending -> filteredList.sortedByDescending { it.price }
-                is SortOrder.None -> filteredList
-                else -> filteredList
+            if (!category.isNullOrBlank() && category != "All") {
+                list = list.filter { it.category == category }
             }
+
+            list = when (sortOrder) {
+                SortOrder.Ascending -> list.sortedBy { it.price }
+                SortOrder.Descending -> list.sortedByDescending { it.price }
+                SortOrder.None -> list
+            }
+
+            list
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
 
-    init {
-        loadProducts()
-    }
-
-    private fun loadProducts() {
-          viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                val loadedProducts = withContext(Dispatchers.IO) {
-                    productRepository.getAllProducts()
-                }
-                _allProducts.value = loadedProducts
-            } catch (e: Exception) {
-                println("error al cargar productos")
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
+    fun getProductQuantityFlow(productId: String): StateFlow<Int> =
+        cartItemsFlow
+            .map { items -> items.find { it.productId == productId }?.quantity ?: 0 }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = 0
+            )
 
     fun onInputSearchChanged(query: String) {
         _inputSearch.value = query
     }
 
     fun onCategorySelected(category: String) {
-        _selectedCategory.value = if (_selectedCategory.value == category && category != "All") null else category
-        if (category == "All") {
-            _selectedCategory.value = "All"
-        }
+        _selectedCategory.value = category
     }
+
     fun onSortOrderChanged(newSortOrder: SortOrder) {
         _currentSortOrder.value = newSortOrder
     }

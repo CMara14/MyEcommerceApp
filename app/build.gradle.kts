@@ -89,7 +89,7 @@ dependencies {
     //COIL AsyncImage dependencies
     implementation("io.coil-kt:coil-compose:2.6.0")
 
-    //Cloudinary
+    //Cloudinary dependencies
     implementation("com.cloudinary:cloudinary-android:2.3.1")
 
     //ROOM dependencies

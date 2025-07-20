@@ -33,10 +33,9 @@ import com.example.myecommerceapp.ui.screens.cart.CartViewModel
 @Composable
 fun ProductCatalogScreen(
     viewModel: ProductCatalogViewModel = hiltViewModel(),
-    cartViewModel: CartViewModel
+    cartViewModel: CartViewModel = hiltViewModel()
 ) {
     val products by viewModel.filteredProducts.collectAsState()
-    val cartItems by cartViewModel.cartItems.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val inputSearch by viewModel.inputSearch.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -71,7 +70,7 @@ fun ProductCatalogScreen(
                                     is SortOrder.Ascending -> Icons.Filled.ArrowUpward
                                     is SortOrder.Descending -> Icons.Filled.ArrowDownward
                                     is SortOrder.None -> Icons.AutoMirrored.Filled.Sort
-                                    else ->  Icons.AutoMirrored.Filled.Sort
+                                    else -> Icons.AutoMirrored.Filled.Sort
                                 },
                                 contentDescription = "Sort Order",
                                 tint = if (currentSortOrder != SortOrder.None) White else LightGrayText
@@ -150,10 +149,11 @@ fun ProductCatalogScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(products) { product ->
-                        val currentQuantityInCart = cartItems.find { it.productId == product.id }?.quantity ?: 0
+                        val productQuantity by viewModel.getProductQuantityFlow(product.id)
+                            .collectAsState()
                         ProductCard(
                             product = product,
-                            initialQuantity = currentQuantityInCart,
+                            currentQuantity = productQuantity,
                             onClick = { clickedProduct ->
                                 // TODO: add action when clicking on the product
                             },

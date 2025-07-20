@@ -25,11 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,18 +46,12 @@ import java.util.Locale
 @Composable
 fun ProductCard(
     product: Product,
-    initialQuantity: Int,
+    currentQuantity: Int,
     onClick: (Product) -> Unit,
     onQuantityChange: (Product, Int) -> Unit
 ) {
     val currencyFormatter = remember {
         NumberFormat.getCurrencyInstance(Locale("es", "AR"))
-    }
-
-    var quantity by remember { mutableIntStateOf(initialQuantity) }
-
-    LaunchedEffect(initialQuantity) {
-        quantity = initialQuantity
     }
 
     Card(
@@ -121,7 +111,7 @@ fun ProductCard(
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
-                if (quantity > 0) {
+                if (currentQuantity > 0) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -129,8 +119,7 @@ fun ProductCard(
                     ) {
                         IconButton(
                             onClick = {
-                                val newQuantity = (quantity - 1).coerceAtLeast(0)
-                                quantity = newQuantity
+                                val newQuantity = (currentQuantity - 1).coerceAtLeast(0)
                                 onQuantityChange(product, newQuantity)
                             },
                             modifier = Modifier.size(32.dp)
@@ -143,14 +132,13 @@ fun ProductCard(
                         }
 
                         Text(
-                            text = "$quantity",
+                            text = "$currentQuantity",
                             style = MaterialTheme.typography.bodyLarge.copy(color = White),
                             fontWeight = FontWeight.Bold
                         )
                         IconButton(
                             onClick = {
-                                val newQuantity = quantity + 1
-                                quantity = newQuantity
+                                val newQuantity = currentQuantity + 1
                                 onQuantityChange(product, newQuantity)
                             },
                             modifier = Modifier.size(32.dp)
@@ -166,11 +154,10 @@ fun ProductCard(
                     Spacer(modifier = Modifier.height(32.dp))
                 }
             }
-            if (quantity == 0) {
+            if (currentQuantity == 0) {
                 FloatingActionButton(
                     onClick = {
                         val newQuantity = 1
-                        quantity = newQuantity
                         onQuantityChange(product, newQuantity)
                     },
                     modifier = Modifier
