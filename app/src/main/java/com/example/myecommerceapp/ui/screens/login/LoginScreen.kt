@@ -21,6 +21,7 @@ import com.example.myecommerceapp.ui.theme.DisabledButton
 import com.example.myecommerceapp.ui.theme.DisabledTextButton
 import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.myecommerceapp.ui.UIState
 
 @Composable
 fun LoginScreen(
@@ -30,25 +31,27 @@ fun LoginScreen(
 ) {
     val email by viewModel.email.collectAsState()
     val password by viewModel.password.collectAsState()
-    val loginSuccess by viewModel.loginSuccess.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
     val emailError by viewModel.emailError.collectAsState()
     val passwordError by viewModel.passwordError.collectAsState()
     val isLoginButtonEnabled by viewModel.isLoginButtonEnabled.collectAsState()
+
+    val loginUiState by viewModel.loginUiState.collectAsState()
     val context = LocalContext.current
 
-    LaunchedEffect(loginSuccess) {
-        if (loginSuccess) {
-            onLoginSuccess()
-            viewModel.resetLoginSuccess()
-        }
-    }
-
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let { message ->
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-            viewModel.clearErrorMessage()
+    LaunchedEffect(loginUiState) {
+        when (loginUiState) {
+            is UIState.Success -> {
+                if ((loginUiState as UIState.Success<Boolean>).data) {
+                    Toast.makeText(context, "Login exitoso!", Toast.LENGTH_SHORT).show()
+                    onLoginSuccess()
+                    viewModel.resetLoginUiStateToInitial()
+                }
+            }
+            is UIState.Error -> {
+                val errorMessage = (loginUiState as UIState.Error).message
+                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+            }
+            else -> { }
         }
     }
 
@@ -144,7 +147,7 @@ fun LoginScreen(
                     shape = RoundedCornerShape(12.dp),
                     enabled = isLoginButtonEnabled
                 ) {
-                    if (isLoading) {
+                    if (loginUiState is UIState.Loading) {
                         CircularProgressIndicator(color = White, modifier = Modifier.size(24.dp))
                     } else {
                         Text("Login", fontSize = 20.sp)

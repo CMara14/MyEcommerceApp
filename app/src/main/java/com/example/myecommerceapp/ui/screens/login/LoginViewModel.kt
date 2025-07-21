@@ -3,7 +3,10 @@ package com.example.myecommerceapp.ui.screens.login
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myecommerceapp.data.remote.LoginResult
 import com.example.myecommerceapp.data.repository.AuthRepository
+import com.example.myecommerceapp.domain.PostLoginUseCase
+import com.example.myecommerceapp.ui.UIState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,9 +18,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-open class LoginViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+class LoginViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val loginUseCase: PostLoginUseCase
 ) : ViewModel() {
+    private val _loginUiState = MutableStateFlow<UIState<Boolean>>(UIState.Success(false))
+    open val loginUiState: StateFlow<UIState<Boolean>> = _loginUiState.asStateFlow()
+
     private val _email = MutableStateFlow("")
     open val email: StateFlow<String> = _email.asStateFlow()
 
@@ -30,21 +37,12 @@ open class LoginViewModel @Inject constructor(
     private val _passwordError = MutableStateFlow<String?>(null)
     open val passwordError: StateFlow<String?> = _passwordError.asStateFlow()
 
-    private val _loginSuccess = MutableStateFlow(false)
-    open val loginSuccess: StateFlow<Boolean> = _loginSuccess.asStateFlow()
-
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    open val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(false)
-    open val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
     open val isLoginButtonEnabled: StateFlow<Boolean> = combine(
-        email, password, isLoading
-    ) { currentEmail, currentPassword, currentIsLoading ->
-        !currentIsLoading &&
-                currentEmail.isNotBlank() &&
-                currentPassword.isNotBlank()
+        email, password, loginUiState, _emailError, _passwordError
+    ) { currentEmail, currentPassword, currentUiState, emailErr, passErr ->
+        currentUiState !is UIState.Loading &&
+                currentEmail.isNotBlank() && emailErr == null &&
+                currentPassword.isNotBlank() && passErr == null
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -53,68 +51,59 @@ open class LoginViewModel @Inject constructor(
 
     open fun onEmailChanged(newEmail: String) {
         _email.value = newEmail
-        _errorMessage.value = null
-        _emailError.value = null
+        if (_loginUiState.value is UIState.Error) {
+            _loginUiState.value = UIState.Success(false)
+        }
     }
 
     open fun onPasswordChanged(newPassword: String) {
         _password.value = newPassword
-        _errorMessage.value = null
-        _passwordError.value = null
+        if (_loginUiState.value is UIState.Error) {
+            _loginUiState.value = UIState.Success(false)
+        }
     }
 
     open fun performLogin() {
-        _errorMessage.value = null
         _emailError.value = null
         _passwordError.value = null
-
+        _loginUiState.value = UIState.Loading
         val currentEmail = _email.value.trim()
         val currentPassword = _password.value.trim()
 
         var formValid = true
 
-        if (currentEmail.isEmpty()) {
-            _emailError.value = "El email no puede estar vacío"
-            formValid = false
-        }
-        if (currentPassword.isEmpty()) {
-            _passwordError.value = "La contraseña no puede estar vacía"
-            formValid = false
-        }
-
         if (currentEmail.isNotEmpty() && !Patterns.EMAIL_ADDRESS.matcher(currentEmail).matches()) {
-            _emailError.value = "Formato de email inválido"
-            formValid = false
+            _emailError.value = "Invalid email format"; formValid = false
         }
-
         if (currentPassword.isNotEmpty() && currentPassword.length < 8) {
-            _passwordError.value = "La contraseña debe tener al menos 8 caracteres"
-            formValid = false
+            _passwordError.value = "The password must be at least 8 characters long."; formValid =
+                false
         }
 
         if (!formValid) {
             return
         }
 
-        _isLoading.value = true
         viewModelScope.launch {
-            val loginResult = authRepository.login(currentEmail, currentPassword)
+            when (val result = loginUseCase(currentEmail, currentPassword)) {
+                is LoginResult.Success -> {
+                    authRepository.setLoggedIn(true)
+                    _loginUiState.value = UIState.Success(true)
+                }
 
-            if (loginResult) {
-                authRepository.setLoggedIn(true)
-                _loginSuccess.value = true
-            } else {
-                _errorMessage.value = "Email o contraseña incorrectos."
+                is LoginResult.NetworkError -> {
+                    _loginUiState.value = UIState.Error("Connection failed")
+                }
+
+                is LoginResult.UnknownError -> {
+                    _loginUiState.value = UIState.Error(result.message)
+                }
             }
-            _isLoading.value = false
         }
     }
 
-    open fun clearErrorMessage() {
-        _errorMessage.value = null
-    }
-    open fun resetLoginSuccess() {
-        _loginSuccess.value = false
+    open fun resetLoginUiStateToInitial() {
+        _loginUiState.value = UIState.Success(false)
     }
 
     open fun isUserLoggedIn(): Boolean {

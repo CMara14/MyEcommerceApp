@@ -2,6 +2,8 @@ package com.example.myecommerceapp.di
 
 import com.example.myecommerceapp.BuildConfig
 import com.example.myecommerceapp.data.remote.ApiService
+import com.example.myecommerceapp.data.remote.AuthRemoteDataSource
+import com.example.myecommerceapp.data.remote.AuthRemoteDataSourceImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -55,5 +57,11 @@ object NetworkModule {
     @Singleton
     fun provideProductsRemoteDataSource(apiService: ApiService): ProductsRemoteDataSource {
         return ProductsRemoteDataSourceImpl(apiService)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthRemoteDataSource(apiService: ApiService): AuthRemoteDataSource {
+        return AuthRemoteDataSourceImpl(apiService)
     }
 }

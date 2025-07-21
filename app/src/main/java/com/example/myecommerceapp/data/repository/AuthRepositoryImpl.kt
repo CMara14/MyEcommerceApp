@@ -6,11 +6,14 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import javax.inject.Inject
 import javax.inject.Singleton
-import android.util.Log
+import com.example.myecommerceapp.data.remote.AuthRemoteDataSource
+import com.example.myecommerceapp.data.remote.LoginRequestDto
+import com.example.myecommerceapp.data.remote.LoginResult
 
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val authRemoteDataSource: AuthRemoteDataSource
 ) : AuthRepository {
     private val registeredUsers: MutableList<User> = mutableListOf(
         User("test@test.com", "12345678")
@@ -37,17 +40,20 @@ class AuthRepositoryImpl @Inject constructor(
         _loggedInUserEmail = email
     }
 
-    override suspend fun login(email: String, password: String): Boolean {
-        delay(1000)
-        val isAuthenticated = registeredUsers.any { it.email == email && it.password == password }
+    override suspend fun login(email: String, password: String): LoginResult {
+        val requestBody = LoginRequestDto(email, password)
+        val result = authRemoteDataSource.login(requestBody)
 
-        if (isAuthenticated) {
-            setLoggedIn(true)
-            setLoggedInUserEmail(email)
-            return true
-        } else {
-            return false
+        when (result) {
+            is LoginResult.Success -> {
+                setLoggedIn(true)
+                setLoggedInUserEmail(email)
+            }
+            else -> {
+                setLoggedIn(false)
+            }
         }
+        return result
     }
 
     override suspend fun register(email: String, password: String, name: String): Boolean {
