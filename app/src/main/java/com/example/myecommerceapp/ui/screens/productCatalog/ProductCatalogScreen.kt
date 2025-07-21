@@ -1,8 +1,6 @@
 package com.example.myecommerceapp.ui.screens.productCatalog
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -19,10 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.myecommerceapp.ui.UIState
 import com.example.myecommerceapp.ui.theme.DarkBackground
@@ -30,7 +25,6 @@ import com.example.myecommerceapp.ui.theme.InputFieldColor
 import com.example.myecommerceapp.ui.theme.LightGrayText
 import com.example.myecommerceapp.ui.theme.PinkPastel
 import com.example.myecommerceapp.ui.theme.White
-import com.example.myecommerceapp.ui.components.CategoryFilterChip
 import com.example.myecommerceapp.ui.components.ProductCard
 import com.example.myecommerceapp.ui.screens.cart.CartViewModel
 
@@ -40,15 +34,17 @@ fun ProductCatalogScreen(
     cartViewModel: CartViewModel = hiltViewModel()
 ) {
     val productsViewModel: ProductCatalogViewModel = hiltViewModel()
- val state = productsViewModel.uiState
+    val uiState = productsViewModel.uiState
+    val products by productsViewModel.filteredProducts.collectAsState()
+
+    LaunchedEffect(Unit) {
+        productsViewModel.loadProductsInitial()
+    }
 
     val inputSearch by productsViewModel.inputSearch.collectAsState()
     val currentSortOrder by productsViewModel.currentSortOrder.collectAsState()
     val cartItems by cartViewModel.cartItems.collectAsState()
-
-    LaunchedEffect(Unit) {
-        productsViewModel.loadProducts(refreshData = true)
-    }
+    val filteredProducts by productsViewModel.filteredProducts.collectAsState()
 
     Scaffold(
         topBar = {
@@ -90,7 +86,7 @@ fun ProductCatalogScreen(
         },
         containerColor = DarkBackground
     ) { paddingValues ->
-        when (state) {
+        when (uiState) {
             is UIState.Loading -> {
                 Box(
                     modifier = Modifier
@@ -101,6 +97,7 @@ fun ProductCatalogScreen(
                     CircularProgressIndicator(color = PinkPastel)
                 }
             }
+
             is UIState.Error -> {
                 Box(
                     modifier = Modifier
@@ -108,17 +105,14 @@ fun ProductCatalogScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = (state as UIState.Error).message,
+                        uiState.message,
                         color = MaterialTheme.colorScheme.error,
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(16.dp),
-                        style = TextStyle(
-                            textAlign = TextAlign.Center
-                        )                    )
+                        modifier = Modifier.padding(16.dp)
+                    )
                 }
             }
+
             is UIState.Success -> {
-                val products = (state as UIState.Success).data
                 Column(
                     modifier = Modifier
                         .fillMaxSize()

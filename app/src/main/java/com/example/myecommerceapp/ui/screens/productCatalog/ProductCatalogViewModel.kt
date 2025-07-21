@@ -39,9 +39,11 @@ class ProductCatalogViewModel @Inject constructor(
     private val _currentSortOrder = MutableStateFlow<SortOrder>(SortOrder.None)
     val currentSortOrder: StateFlow<SortOrder> = _currentSortOrder.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private var hasLoadedInitially = false
 
+    init {
+        loadProducts(refreshData = true)
+    }
 
     val allProductsFlow: StateFlow<List<Product>> =
         productRepository.getProductsFlow()
@@ -59,30 +61,25 @@ class ProductCatalogViewModel @Inject constructor(
                 initialValue = emptyList()
             )
 
-    val filteredProducts: StateFlow<List<Product>> =
-        combine(
-            allProductsFlow,
-            inputSearch.debounce(300).distinctUntilChanged(),
-            currentSortOrder
-        ) { allItems, query, sortOrder ->
-            var list = allItems
+    val filteredProducts: StateFlow<List<Product>> = combine(
+        allProductsFlow,
+        inputSearch.debounce(300).distinctUntilChanged(),
+        _currentSortOrder
+    ) { allItems, query, sortOrder ->
+        var list = if (query.isBlank()) allItems
+        else allItems.filter { it.name.contains(query, ignoreCase = true) }
 
-            if (query.isNotBlank()) {
-                list = list.filter { it.name.contains(query, ignoreCase = true) }
-            }
-
-            list = when (sortOrder) {
-                SortOrder.Ascending -> list.sortedBy { it.price }
-                SortOrder.Descending -> list.sortedByDescending { it.price }
-                SortOrder.None -> list
-            }
-
-            list
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+        list = when (sortOrder) {
+            SortOrder.Ascending -> list.sortedBy { it.price }
+            SortOrder.Descending -> list.sortedByDescending { it.price }
+            SortOrder.None -> list
+        }
+        list
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     fun getProductQuantityFlow(productId: String): StateFlow<Int> =
         cartItemsFlow
@@ -101,17 +98,38 @@ class ProductCatalogViewModel @Inject constructor(
         _currentSortOrder.value = newSortOrder
     }
 
-    fun loadProducts(refreshData: Boolean = false) {
+    fun loadProductsInitial() {
+        if (hasLoadedInitially) return
+        hasLoadedInitially = true
+        loadProducts(refreshData = true, isInitial = true)
+    }
+
+    fun loadProducts(
+        refreshData: Boolean = false,
+        isInitial: Boolean = false
+    ) {
         viewModelScope.launch {
-            uiState = UIState.Loading
+            if (isInitial && allProductsFlow.value.isEmpty()) {
+                uiState = UIState.Loading
+            }
+
             try {
                 val products = getProductsUseCase(refreshData)
                 uiState = UIState.Success(products)
             } catch (e: IOException) {
-                uiState = UIState.Error("Connection failed")
+                handleLoadError(isInitial, "Connection failed")
             } catch (e: Exception) {
-                uiState = UIState.Error("Unexpected server error")
+                handleLoadError(isInitial, "Unexpected server error")
             }
+        }
+    }
+
+    private fun handleLoadError(isInitial: Boolean, message: String) {
+        val cached = allProductsFlow.value
+        uiState = if (isInitial && cached.isNotEmpty()) {
+            UIState.Success(cached)
+        } else {
+            UIState.Error(message)
         }
     }
 }
