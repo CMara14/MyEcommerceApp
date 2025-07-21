@@ -10,6 +10,7 @@ import com.example.myecommerceapp.data.local.dao.CartItemDao
 import com.example.myecommerceapp.data.local.dao.OrderHistoryDao
 import com.example.myecommerceapp.data.local.dao.OrderItemDao
 import com.example.myecommerceapp.data.local.dao.ProductDao
+import com.example.myecommerceapp.data.remote.ProductsRemoteDataSource
 import com.example.myecommerceapp.data.repository.AuthRepository
 import com.example.myecommerceapp.data.repository.AuthRepositoryImpl
 import com.example.myecommerceapp.data.repository.CartRepository
@@ -62,9 +63,13 @@ object AppModule {
     @Provides
     @Singleton
     fun provideProductRepository(
-        localDataSource: ProductsLocalDataSource
+        localDataSource: ProductsLocalDataSource,
+        remoteDataSource: ProductsRemoteDataSource
     ): ProductRepository {
-        return ProductRepositoryImpl(localDataSource)
+        return ProductRepositoryImpl(
+            localDataSource,
+            remoteDataSource
+        )
     }
 
     @Provides

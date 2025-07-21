@@ -27,6 +27,7 @@ android {
         buildConfigField("String", "CLOUD_NAME", "\"${properties.getProperty("CLOUD_NAME")}\"")
         buildConfigField("String", "CLOUD_API_KEY", "\"${properties.getProperty("CLOUD_API_KEY")}\"")
         buildConfigField("String", "CLOUD_API_SECRET", "\"${properties.getProperty("CLOUD_API_SECRET")}\"")
+        buildConfigField("String", "BASE_URL", "\"${properties.getProperty("BASE_URL")}\"")
     }
 
     buildTypes {
@@ -85,6 +86,12 @@ dependencies {
     //Retrofit dependencies
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    //Gson dependencies
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    //OkHttp dependencies
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
     //COIL AsyncImage dependencies
     implementation("io.coil-kt:coil-compose:2.6.0")

@@ -1,14 +1,21 @@
 package com.example.myecommerceapp.ui.screens.productCatalog
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myecommerceapp.data.repository.CartRepository
 import com.example.myecommerceapp.data.repository.ProductRepository
+import com.example.myecommerceapp.domain.GetProductsUseCase
 import com.example.myecommerceapp.domain.model.CartItem
 import com.example.myecommerceapp.domain.model.Product
+import com.example.myecommerceapp.ui.UIState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import okio.IOException
 
 sealed class SortOrder {
     data object None : SortOrder()
@@ -18,15 +25,16 @@ sealed class SortOrder {
 
 @HiltViewModel
 class ProductCatalogViewModel @Inject constructor(
-    productRepository: ProductRepository,
-    private val cartRepository: CartRepository
+    private val productRepository: ProductRepository,
+    private val getProductsUseCase: GetProductsUseCase,
+    private val cartRepository: CartRepository,
 ) : ViewModel() {
+
+    var uiState by mutableStateOf<UIState<List<Product>>>(UIState.Loading)
+        private set
 
     private val _inputSearch = MutableStateFlow("")
     val inputSearch: StateFlow<String> = _inputSearch.asStateFlow()
-
-    private val _selectedCategory = MutableStateFlow<String?>("All")
-    val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
 
     private val _currentSortOrder = MutableStateFlow<SortOrder>(SortOrder.None)
     val currentSortOrder: StateFlow<SortOrder> = _currentSortOrder.asStateFlow()
@@ -34,10 +42,9 @@ class ProductCatalogViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val allProductsFlow: StateFlow<List<Product>> =
-        productRepository.getAllProducts()
-            .onStart { _isLoading.value = true }
-            .onEach { _isLoading.value = false }
+
+    val allProductsFlow: StateFlow<List<Product>> =
+        productRepository.getProductsFlow()
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
@@ -52,32 +59,16 @@ class ProductCatalogViewModel @Inject constructor(
                 initialValue = emptyList()
             )
 
-    val categories: StateFlow<List<String>> =
-        allProductsFlow
-            .map { products ->
-                listOf("All") + products.map { it.category }.distinct().sorted()
-            }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = listOf("All")
-            )
-
     val filteredProducts: StateFlow<List<Product>> =
         combine(
             allProductsFlow,
             inputSearch.debounce(300).distinctUntilChanged(),
-            selectedCategory,
             currentSortOrder
-        ) { allItems, query, category, sortOrder ->
+        ) { allItems, query, sortOrder ->
             var list = allItems
 
             if (query.isNotBlank()) {
                 list = list.filter { it.name.contains(query, ignoreCase = true) }
-            }
-
-            if (!category.isNullOrBlank() && category != "All") {
-                list = list.filter { it.category == category }
             }
 
             list = when (sortOrder) {
@@ -106,11 +97,21 @@ class ProductCatalogViewModel @Inject constructor(
         _inputSearch.value = query
     }
 
-    fun onCategorySelected(category: String) {
-        _selectedCategory.value = category
-    }
-
     fun onSortOrderChanged(newSortOrder: SortOrder) {
         _currentSortOrder.value = newSortOrder
+    }
+
+    fun loadProducts(refreshData: Boolean = false) {
+        viewModelScope.launch {
+            uiState = UIState.Loading
+            try {
+                val products = getProductsUseCase(refreshData)
+                uiState = UIState.Success(products)
+            } catch (e: IOException) {
+                uiState = UIState.Error("Connection failed")
+            } catch (e: Exception) {
+                uiState = UIState.Error("Unexpected server error")
+            }
+        }
     }
 }

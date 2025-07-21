@@ -7,5 +7,4 @@ data class Product(
     val imageUrl: String,
     val price: Double,
     val hasDrink: Boolean,
-    val category: String
 )

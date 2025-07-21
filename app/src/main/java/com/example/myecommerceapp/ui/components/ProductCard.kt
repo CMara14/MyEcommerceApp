@@ -93,12 +93,6 @@ fun ProductCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = product.category,
-                        style = MaterialTheme.typography.bodySmall.copy(color = LightGrayText),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))

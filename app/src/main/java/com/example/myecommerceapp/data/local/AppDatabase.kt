@@ -18,7 +18,7 @@ import com.example.myecommerceapp.data.local.entities.ProductEntity
         OrderEntity::class,
         OrderItemEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

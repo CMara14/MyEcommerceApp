@@ -17,9 +17,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.myecommerceapp.ui.UIState
 import com.example.myecommerceapp.ui.theme.DarkBackground
 import com.example.myecommerceapp.ui.theme.InputFieldColor
 import com.example.myecommerceapp.ui.theme.LightGrayText
@@ -32,15 +37,18 @@ import com.example.myecommerceapp.ui.screens.cart.CartViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductCatalogScreen(
-    viewModel: ProductCatalogViewModel = hiltViewModel(),
     cartViewModel: CartViewModel = hiltViewModel()
 ) {
-    val products by viewModel.filteredProducts.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val inputSearch by viewModel.inputSearch.collectAsState()
-    val categories by viewModel.categories.collectAsState()
-    val selectedCategory by viewModel.selectedCategory.collectAsState()
-    val currentSortOrder by viewModel.currentSortOrder.collectAsState()
+    val productsViewModel: ProductCatalogViewModel = hiltViewModel()
+ val state = productsViewModel.uiState
+
+    val inputSearch by productsViewModel.inputSearch.collectAsState()
+    val currentSortOrder by productsViewModel.currentSortOrder.collectAsState()
+    val cartItems by cartViewModel.cartItems.collectAsState()
+
+    LaunchedEffect(Unit) {
+        productsViewModel.loadProducts(refreshData = true)
+    }
 
     Scaffold(
         topBar = {
@@ -55,7 +63,7 @@ fun ProductCatalogScreen(
                         text = "Price",
                         isSelected = currentSortOrder != SortOrder.None,
                         onClick = {
-                            viewModel.onSortOrderChanged(
+                            productsViewModel.onSortOrderChanged(
                                 when (currentSortOrder) {
                                     is SortOrder.None -> SortOrder.Ascending
                                     is SortOrder.Ascending -> SortOrder.Descending
@@ -82,86 +90,93 @@ fun ProductCatalogScreen(
         },
         containerColor = DarkBackground
     ) { paddingValues ->
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = PinkPastel)
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp)
-            ) {
-
-                OutlinedTextField(
-                    value = inputSearch,
-                    onValueChange = { viewModel.onInputSearchChanged(it) },
-                    label = { Text("Search...", color = LightGrayText) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = LightGrayText
-                        )
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = InputFieldColor,
-                        unfocusedContainerColor = InputFieldColor,
-                        focusedTextColor = White,
-                        unfocusedTextColor = White,
-                        focusedBorderColor = PinkPastel,
-                        unfocusedBorderColor = InputFieldColor,
-                        focusedLabelColor = PinkPastel,
-                        unfocusedLabelColor = LightGrayText,
-                        cursorColor = PinkPastel,
-                    ),
-                    shape = RoundedCornerShape(12.dp),
+        when (state) {
+            is UIState.Loading -> {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp)
-                )
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp)
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
                 ) {
-                    lazyItems(categories) { category ->
-                        CategoryFilterChip(
-                            category = category,
-                            isSelected = category == selectedCategory,
-                            onClick = { viewModel.onCategorySelected(category) }
-                        )
-                    }
+                    CircularProgressIndicator(color = PinkPastel)
                 }
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
+            }
+            is UIState.Error -> {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentPadding = PaddingValues(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(products) { product ->
-                        val productQuantity by viewModel.getProductQuantityFlow(product.id)
-                            .collectAsState()
-                        ProductCard(
-                            product = product,
-                            currentQuantity = productQuantity,
-                            onClick = { clickedProduct ->
-                                // TODO: add action when clicking on the product
-                            },
-                            onQuantityChange = { updatedProduct, newQuantity ->
-                                cartViewModel.addOrUpdateProduct(updatedProduct, newQuantity)
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = (state as UIState.Error).message,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(16.dp),
+                        style = TextStyle(
+                            textAlign = TextAlign.Center
+                        )                    )
+                }
+            }
+            is UIState.Success -> {
+                val products = (state as UIState.Success).data
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(horizontal = 16.dp)
+                ) {
+
+                    OutlinedTextField(
+                        value = inputSearch,
+                        onValueChange = { productsViewModel.onInputSearchChanged(it) },
+                        label = { Text("Search...", color = LightGrayText) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = LightGrayText
+                            )
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = InputFieldColor,
+                            unfocusedContainerColor = InputFieldColor,
+                            focusedTextColor = White,
+                            unfocusedTextColor = White,
+                            focusedBorderColor = PinkPastel,
+                            unfocusedBorderColor = InputFieldColor,
+                            focusedLabelColor = PinkPastel,
+                            unfocusedLabelColor = LightGrayText,
+                            cursorColor = PinkPastel,
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp)
+                    )
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentPadding = PaddingValues(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(products) { product ->
+                            val productQuantity by productsViewModel.getProductQuantityFlow(product.id)
+                                .collectAsState()
+                            ProductCard(
+                                product = product,
+                                currentQuantity = productQuantity,
+                                onClick = { clickedProduct ->
+                                    // TODO: add action when clicking on the product
+                                },
+                                onQuantityChange = { updatedProduct, newQuantity ->
+                                    cartViewModel.addOrUpdateProduct(updatedProduct, newQuantity)
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
                     }
                 }
             }

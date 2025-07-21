@@ -112,9 +112,7 @@ fun MainActivityContent(
                 .padding(paddingValues)
         ) {
             composable(BottomNavRoutes.HOME_ROUTE) {
-                val productCatalogViewModel: ProductCatalogViewModel = hiltViewModel()
                 ProductCatalogScreen(
-                    viewModel = productCatalogViewModel,
                     cartViewModel = sharedCartViewModel
                 )
             }
